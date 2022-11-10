@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserToken {
+  token  String @id
+  userId String
+}
+
+model User {
+  id                 String                 @id @default(uuid())
+  username           String                 @unique
+  password           String
+  topics             TopicModerator[]
+  blocked            BlockedUser[]
+  posts              Post[]
+  comments           Comment[]
+  upvotedComments    UserUpvotedComment[]
+  downvotedComments  UserDownvotedComment[]
+  userUpvotedPosts   UserUpvotedPost[]
+  userDownvotedPosts UserDownvotedPost[]
+}
+
+model UserUpvotedComment {
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+  comment   Comment @relation(fields: [commentId], references: [id])
+  commentId String
+
+  @@id([userId, commentId])
+  @@map("commentUpvotes")
+}
+
+model UserDownvotedComment {
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+  comment   Comment @relation(fields: [commentId], references: [id])
+  commentId String
+
+  @@id([userId, commentId])
+  @@map("commentDownvotes")
+}
+
+model Comment {
+  id                    String                 @id @default(uuid())
+  User                  User?                  @relation(fields: [userId], references: [id])
+  userId                String?
+  post                  Post                   @relation(fields: [postId], references: [id])
+  postId                String
+  content               String
+  userUpvotedComments   UserUpvotedComment[]
+  userDownvotedComments UserDownvotedComment[]
+}
+
+model UserUpvotedPost {
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  post   Post   @relation(fields: [postId], references: [id])
+  postId String
+
+  @@id([userId, postId])
+  @@map("postUpvotes")
+}
+
+model UserDownvotedPost {
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  post   Post   @relation(fields: [postId], references: [id])
+  postId String
+
+  @@id([userId, postId])
+  @@map("postDownvotes")
+}
+
+model Post {
+  id                 String              @id @default(uuid())
+  user               User?               @relation(fields: [userId], references: [id])
+  userId             String?
+  topic              Topic               @relation(fields: [topicId], references: [id])
+  topicId            String
+  name               String
+  content            String
+  comments           Comment[]
+  userUpvotedPosts   UserUpvotedPost[]
+  userDownvotedPosts UserDownvotedPost[]
+}
+
+model TopicModerator {
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  topic   Topic  @relation(fields: [topicId], references: [id])
+  topicId String
+
+  @@id([userId, topicId])
+}
+
+model BlockedUser {
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  topic   Topic  @relation(fields: [topicId], references: [id])
+  topicId String
+
+  @@id([userId, topicId])
+}
+
+model Topic {
+  id          String           @id @default(uuid())
+  name        String
+  description String
+  moderators  TopicModerator[]
+  blocked     BlockedUser[]
+  posts       Post[]
+}
