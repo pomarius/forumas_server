@@ -7,7 +7,7 @@ const run = async () => {
   const app = expressConfig();
   const httpServer = http.createServer(app);
 
-  httpServer.listen(PORT, () => {
+  httpServer.listen(process.env.PORT || PORT, () => {
     console.log(`=================================`);
     console.log(`ENV: ${NODE_ENV}`);
     console.log(`PORT: ${PORT}`);
