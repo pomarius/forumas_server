@@ -18,6 +18,7 @@ export const login = async (req: Request, res: Response) => {
     if (error instanceof HttpException) {
       res.status(error.status).send(error.message);
     }
+    console.log(error);
     res.status(500).send();
   }
 };
@@ -38,6 +39,7 @@ export const register = async (req: Request, res: Response) => {
     if (error instanceof HttpException) {
       res.status(error.status).send(error.message);
     }
+    console.log(error);
     res.status(500).send();
   }
 };
@@ -58,6 +60,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     if (error instanceof HttpException) {
       res.status(error.status).send(error.message);
     }
+    console.log(error);
     res.status(500).send();
   }
 };
