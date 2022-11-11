@@ -10,7 +10,7 @@ const run = async () => {
   httpServer.listen(process.env.PORT || PORT, () => {
     console.log(`=================================`);
     console.log(`ENV: ${NODE_ENV}`);
-    console.log(`PORT: ${PORT}`);
+    console.log(`PORT: ${process.env.PORT || PORT}`);
     console.log(`=================================`);
   });
 };

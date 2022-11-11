@@ -8,6 +8,12 @@ import { indexRouter } from '../routes/index.router';
 import { postRouter } from '../routes/post.router';
 import { topicRouter } from '../routes/topic.router';
 
+interface SyntaxError {
+  type: string;
+  status: number;
+  message: string;
+}
+
 const expressConfig = () => {
   const app = express();
 
@@ -21,6 +27,16 @@ const expressConfig = () => {
   app.use('/api/topic', topicRouter);
   app.use('/api/post', postRouter);
   app.use('/api/comment', commentRouter);
+
+  app.use(
+    (err: SyntaxError, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        console.error(err);
+        return res.status(400).send((err as SyntaxError).message);
+      }
+      next();
+    }
+  );
 
   return app;
 };
