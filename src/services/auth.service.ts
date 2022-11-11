@@ -79,7 +79,7 @@ const refreshToken = async (token: string) => {
 const generateTokens = async (userId: string) => {
   const payload = { _id: userId };
   const accessToken = jwt.sign(payload, ACCESS_TOKEN_PRIVATE_KEY, {
-    expiresIn: '10m',
+    expiresIn: '1m',
   });
   const refreshToken = jwt.sign(payload, REFRESH_TOKEN_PRIVATE_KEY, {
     expiresIn: '10m',
