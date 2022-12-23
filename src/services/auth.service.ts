@@ -18,7 +18,7 @@ const login = async (username: string, password: string) => {
 
   const { accessToken, refreshToken } = await generateTokens(user.id);
 
-  return { accessToken: accessToken, refreshToken: refreshToken };
+  return { accessToken: accessToken, refreshToken: refreshToken, username: username };
 };
 
 const register = async (username: string, password: string) => {
@@ -36,20 +36,18 @@ const register = async (username: string, password: string) => {
 
   const { accessToken, refreshToken } = await generateTokens(newUser.id);
 
-  return { accessToken: accessToken, refreshToken: refreshToken };
+  return { accessToken: accessToken, refreshToken: refreshToken, username: username };
 };
 
 const refreshToken = async (token: string) => {
   const userToken = await prisma.userToken.findFirst({ where: { token: token } });
 
   if (!userToken) {
-    throw new HttpException(400, 'Invalid refresh token');
+    throw new HttpException(401, 'Invalid refresh token');
   }
 
   try {
     const { _id } = jwt.verify(token, REFRESH_TOKEN_PRIVATE_KEY) as JwtPayload;
-
-    console.log(_id);
 
     if (!_id) {
       throw new HttpException(404, 'User not found');
@@ -64,7 +62,7 @@ const refreshToken = async (token: string) => {
     }
 
     const { accessToken, refreshToken } = await generateTokens(user.id);
-    return { accessToken: accessToken, refreshToken: refreshToken };
+    return { accessToken: accessToken, refreshToken: refreshToken, username: user.username };
   } catch (error) {
     if (error instanceof HttpException) {
       throw new HttpException(error.status, error.message);
@@ -82,7 +80,7 @@ const generateTokens = async (userId: string) => {
     expiresIn: '1m',
   });
   const refreshToken = jwt.sign(payload, REFRESH_TOKEN_PRIVATE_KEY, {
-    expiresIn: '10m',
+    expiresIn: '60m',
   });
 
   const userToken = await prisma.userToken.findFirst({ where: { userId: userId } });
@@ -101,8 +99,6 @@ const verifyToken = async (token: string) => {
   try {
     const { _id } = jwt.verify(token, ACCESS_TOKEN_PRIVATE_KEY) as JwtPayload;
 
-    console.log(_id);
-
     if (!_id) {
       throw new HttpException(404, 'User not found');
     }
@@ -115,7 +111,7 @@ const verifyToken = async (token: string) => {
       throw new HttpException(404, 'User not found');
     }
 
-    return { userId: user.id };
+    return { userId: user.id, username: user.username };
   } catch (error) {
     if (error instanceof HttpException) {
       throw new HttpException(error.status, error.message);

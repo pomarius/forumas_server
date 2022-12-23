@@ -12,6 +12,10 @@ const createTopic = async (userId: string, name: string, description: string) =>
 
   const topic = await prisma.topic.create({
     data: { moderators: { create: { userId: userId } }, name: name, description: description },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 
   return topic;
@@ -19,7 +23,12 @@ const createTopic = async (userId: string, name: string, description: string) =>
 
 const readTopic = async (id?: string) => {
   if (!id) {
-    const topics = await prisma.topic.findMany({});
+    const topics = await prisma.topic.findMany({
+      include: {
+        moderators: { include: { user: { select: { id: true, username: true } } } },
+        blocked: { include: { user: { select: { id: true, username: true } } } },
+      },
+    });
 
     if (!topics) {
       throw new HttpException(404, 'Topics not found');
@@ -30,6 +39,10 @@ const readTopic = async (id?: string) => {
 
   const topic = await prisma.topic.findFirst({
     where: { id: id },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 
   if (!topic) {
@@ -42,6 +55,10 @@ const readTopic = async (id?: string) => {
 const updateTopic = async (userId: string, id: string, name?: string, description?: string) => {
   const topic = await prisma.topic.findFirst({
     where: { id: id },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 
   if (!topic) {
@@ -59,13 +76,27 @@ const updateTopic = async (userId: string, id: string, name?: string, descriptio
   return await prisma.topic.update({
     where: { id },
     data: { name: name, description: description },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 };
 
 const deleteTopic = async (userId: string, id: string) => {
   const topic = await prisma.topic.findFirst({
     where: { id: id },
-    include: { posts: true },
+    include: {
+      posts: {
+        include: {
+          userDownvotedPosts: true,
+          userUpvotedPosts: true,
+          comments: { include: { userDownvotedComments: true, userUpvotedComments: true } },
+        },
+      },
+      moderators: true,
+      blocked: true,
+    },
   });
 
   if (!topic) {
@@ -81,8 +112,23 @@ const deleteTopic = async (userId: string, id: string) => {
   }
 
   for (let i = 0; i < topic.posts.length; i++) {
+    for (let j = 0; j < topic.posts[i].comments.length; j++) {
+      await prisma.userDownvotedComment.deleteMany({
+        where: { commentId: topic.posts[i].comments[j].id },
+      });
+
+      await prisma.userUpvotedComment.deleteMany({
+        where: { commentId: topic.posts[i].comments[j].id },
+      });
+    }
     await prisma.comment.deleteMany({ where: { postId: topic.posts[i].id } });
+
+    await prisma.userUpvotedPost.deleteMany({ where: { postId: topic.posts[i].id } });
+    await prisma.userDownvotedPost.deleteMany({ where: { postId: topic.posts[i].id } });
   }
+
+  await prisma.topicModerator.deleteMany({ where: { topicId: topic.id } });
+  await prisma.blockedUser.deleteMany({ where: { topicId: topic.id } });
 
   await prisma.post.deleteMany({ where: { topicId: id } });
   await prisma.topic.delete({ where: { id } });
@@ -91,6 +137,10 @@ const deleteTopic = async (userId: string, id: string) => {
 const addTopicModerator = async (userId: string, id: string, username: string) => {
   const topic = await prisma.topic.findFirst({
     where: { id: id },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 
   if (!topic) {
@@ -121,15 +171,23 @@ const addTopicModerator = async (userId: string, id: string, username: string) =
     throw new HttpException(405, 'User is already a moderator');
   }
 
-  await prisma.topic.update({
+  return await prisma.topic.update({
     where: { id },
     data: { moderators: { create: { userId: user.id } } },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 };
 
 const blockUser = async (userId: string, id: string, username: string) => {
   const topic = await prisma.topic.findFirst({
     where: { id: id },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 
   if (!topic) {
@@ -168,9 +226,13 @@ const blockUser = async (userId: string, id: string, username: string) => {
     throw new HttpException(405, 'User is already blocked');
   }
 
-  await prisma.topic.update({
+  return await prisma.topic.update({
     where: { id },
     data: { blocked: { create: { userId: user.id } } },
+    include: {
+      moderators: { include: { user: { select: { id: true, username: true } } } },
+      blocked: { include: { user: { select: { id: true, username: true } } } },
+    },
   });
 };
 

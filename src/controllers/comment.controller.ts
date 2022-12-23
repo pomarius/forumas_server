@@ -28,16 +28,14 @@ export const createComment = async (req: Request, res: Response) => {
 
 export const readComment = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
     const postId = req.params.postId;
-    const topicId = req.params.topicId;
 
-    if (id && (!postId || !topicId)) {
+    if (!postId) {
       res.status(400).send({ error: 'Bad input' });
       return;
     }
 
-    const comment = await commentService.readComment(id, postId, topicId);
+    const comment = await commentService.readComment(postId);
 
     res.status(200).send(comment);
   } catch (error) {

@@ -8,6 +8,8 @@ export const createPost = async (req: Request, res: Response) => {
     const token = req.header('token');
     const { name, content, topicId } = req.body;
 
+    console.log(req.body);
+
     if (!name || !content || !topicId || !token) {
       res.status(400).send({ error: 'Bad input' });
       return;
@@ -26,24 +28,11 @@ export const createPost = async (req: Request, res: Response) => {
   }
 };
 
-export const readPost = async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id;
-
-    const post = await postService.readPost(id);
-
-    res.status(200).send(post);
-  } catch (error) {
-    if (error instanceof HttpException) {
-      res.status(error.status).send(error.message);
-    }
-    res.status(500).send();
-  }
-};
-
 export const readAllPosts = async (req: Request, res: Response) => {
   try {
-    const post = await postService.readPost();
+    const topicId = req.params.topicId;
+
+    const post = await postService.readPost(topicId);
 
     res.status(200).send(post);
   } catch (error) {
@@ -172,7 +161,6 @@ export const unvotePost = async (req: Request, res: Response) => {
 
 export const postController = {
   createPost,
-  readPost,
   readAllPosts,
   updatePost,
   deletePost,

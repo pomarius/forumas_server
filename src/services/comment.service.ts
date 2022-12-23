@@ -28,56 +28,25 @@ const createComment = async (userId: string, postId: string, content: string) =>
 
   const comment = await prisma.comment.create({
     data: { userId: userId, postId: postId, content: content },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 
   return comment;
 };
 
-const readComment = async (id?: string, postId?: string, topicId?: string) => {
-  if (!id) {
-    const comments = await prisma.comment.findMany({});
-
-    if (!comments) {
-      throw new HttpException(404, 'Comments not found');
-    }
-
-    return comments;
-  }
-
-  const topic = await prisma.topic.findFirst({
-    where: { id: topicId },
+const readComment = async (postId?: string) => {
+  const comment = await prisma.comment.findMany({
+    where: { postId: postId },
     include: {
-      posts: {
-        where: { id: postId },
-        include: {
-          comments: {
-            where: { id: id },
-            include: {
-              _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
-            },
-          },
-        },
-      },
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
     },
   });
-
-  if (!topic) {
-    throw new HttpException(404, 'Topic not found');
-  }
-
-  if (topic.posts.length == 0) {
-    throw new HttpException(404, 'Post not found');
-  }
-
-  if (topic.posts[0].comments.length == 0) {
-    throw new HttpException(404, 'Comment not found');
-  }
-
-  const comment = topic.posts[0].comments[0];
-
-  if (!comment) {
-    throw new HttpException(404, 'Comment not found');
-  }
 
   return comment;
 };
@@ -85,6 +54,11 @@ const readComment = async (id?: string, postId?: string, topicId?: string) => {
 const updateComment = async (userId: string, id: string, content?: string) => {
   const comment = await prisma.comment.findFirst({
     where: { id: id },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 
   if (!comment) {
@@ -118,13 +92,22 @@ const updateComment = async (userId: string, id: string, content?: string) => {
   return await prisma.comment.update({
     where: { id },
     data: { content: content },
-    include: { _count: { select: { userUpvotedComments: true, userDownvotedComments: true } } },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 };
 
 const deleteComment = async (userId: string, id: string) => {
   const comment = await prisma.comment.findFirst({
     where: { id: id },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 
   if (!comment) {
@@ -155,12 +138,20 @@ const deleteComment = async (userId: string, id: string) => {
     throw new HttpException(401, 'User is blocked');
   }
 
+  await prisma.userDownvotedComment.deleteMany({ where: { commentId: id } });
+  await prisma.userUpvotedComment.deleteMany({ where: { commentId: id } });
+
   await prisma.comment.delete({ where: { id } });
 };
 
 const upvoteComment = async (userId: string, id: string) => {
   const comment = await prisma.comment.findFirst({
     where: { id: id },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 
   if (!comment) {
@@ -212,13 +203,22 @@ const upvoteComment = async (userId: string, id: string) => {
   return await prisma.comment.update({
     where: { id },
     data: { userUpvotedComments: { create: { userId: userId } } },
-    include: { _count: { select: { userUpvotedComments: true, userDownvotedComments: true } } },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 };
 
 const downvoteComment = async (userId: string, id: string) => {
   const comment = await prisma.comment.findFirst({
     where: { id: id },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 
   if (!comment) {
@@ -270,13 +270,22 @@ const downvoteComment = async (userId: string, id: string) => {
   return await prisma.comment.update({
     where: { id },
     data: { userDownvotedComments: { create: { userId: userId } } },
-    include: { _count: { select: { userUpvotedComments: true, userDownvotedComments: true } } },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 };
 
 const unvoteComment = async (userId: string, id: string) => {
   const comment = await prisma.comment.findFirst({
     where: { id: id },
+    include: {
+      _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+      userUpvotedComments: true,
+      userDownvotedComments: true,
+    },
   });
 
   if (!comment) {
@@ -318,7 +327,11 @@ const unvoteComment = async (userId: string, id: string) => {
 
     return await prisma.comment.findFirst({
       where: { id: id },
-      include: { _count: { select: { userUpvotedComments: true, userDownvotedComments: true } } },
+      include: {
+        _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+        userUpvotedComments: true,
+        userDownvotedComments: true,
+      },
     });
   }
 
@@ -333,7 +346,11 @@ const unvoteComment = async (userId: string, id: string) => {
 
     return await prisma.comment.findFirst({
       where: { id: id },
-      include: { _count: { select: { userUpvotedComments: true, userDownvotedComments: true } } },
+      include: {
+        _count: { select: { userUpvotedComments: true, userDownvotedComments: true } },
+        userUpvotedComments: true,
+        userDownvotedComments: true,
+      },
     });
   }
 

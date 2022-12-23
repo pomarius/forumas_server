@@ -28,37 +28,37 @@ const createPost = async (userId: string, topicId: string, name: string, content
 
   const post = await prisma.post.create({
     data: { userId: userId, topicId: topicId, name: name, content: content },
+    include: {
+      _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+      userUpvotedPosts: true,
+      userDownvotedPosts: true,
+    },
   });
 
   return post;
 };
 
-const readPost = async (id?: string) => {
-  if (!id) {
-    const posts = await prisma.post.findMany({});
-
-    if (!posts) {
-      throw new HttpException(404, 'Posts not found');
-    }
-
-    return posts;
-  }
-
-  const post = await prisma.post.findFirst({
-    where: { id: id },
-    include: { _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } } },
+const readPost = async (topicId: string) => {
+  const posts = await prisma.post.findMany({
+    where: { topicId: topicId },
+    include: {
+      _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+      userUpvotedPosts: true,
+      userDownvotedPosts: true,
+    },
   });
 
-  if (!post) {
-    throw new HttpException(404, 'Post not found');
-  }
-
-  return post;
+  return posts;
 };
 
 const updatePost = async (userId: string, id: string, name?: string, content?: string) => {
   const post = await prisma.post.findFirst({
     where: { id: id },
+    include: {
+      _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+      userUpvotedPosts: true,
+      userDownvotedPosts: true,
+    },
   });
 
   if (!post) {
@@ -84,13 +84,22 @@ const updatePost = async (userId: string, id: string, name?: string, content?: s
   return await prisma.post.update({
     where: { id },
     data: { name: name, content: content },
-    include: { _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } } },
+    include: {
+      _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+      userUpvotedPosts: true,
+      userDownvotedPosts: true,
+    },
   });
 };
 
 const deletePost = async (userId: string, id: string) => {
   const post = await prisma.post.findFirst({
     where: { id: id },
+    include: {
+      userUpvotedPosts: true,
+      userDownvotedPosts: true,
+      comments: { include: { userDownvotedComments: true, userUpvotedComments: true } },
+    },
   });
 
   if (!post) {
@@ -112,6 +121,15 @@ const deletePost = async (userId: string, id: string) => {
   if (blocked) {
     throw new HttpException(401, 'User is blocked');
   }
+
+  for (let i = 0; i < post.comments.length; i++) {
+    await prisma.userDownvotedComment.deleteMany({ where: { commentId: post.comments[i].id } });
+    await prisma.userUpvotedComment.deleteMany({ where: { commentId: post.comments[i].id } });
+  }
+  await prisma.comment.deleteMany({ where: { postId: post.id } });
+
+  await prisma.userUpvotedPost.deleteMany({ where: { postId: post.id } });
+  await prisma.userDownvotedPost.deleteMany({ where: { postId: post.id } });
 
   await prisma.comment.deleteMany({ where: { postId: id } });
   await prisma.post.delete({ where: { id } });
@@ -163,7 +181,11 @@ const upvotePost = async (userId: string, id: string) => {
   return await prisma.post.update({
     where: { id },
     data: { userUpvotedPosts: { create: { userId: userId } } },
-    include: { _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } } },
+    include: {
+      _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+      userUpvotedPosts: true,
+      userDownvotedPosts: true,
+    },
   });
 };
 
@@ -213,7 +235,11 @@ const downvotePost = async (userId: string, id: string) => {
   return await prisma.post.update({
     where: { id },
     data: { userDownvotedPosts: { create: { userId: userId } } },
-    include: { _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } } },
+    include: {
+      _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+      userUpvotedPosts: true,
+      userDownvotedPosts: true,
+    },
   });
 };
 
@@ -253,7 +279,11 @@ const unvotePost = async (userId: string, id: string) => {
 
     return await prisma.post.findFirst({
       where: { id: id },
-      include: { _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } } },
+      include: {
+        _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+        userUpvotedPosts: true,
+        userDownvotedPosts: true,
+      },
     });
   }
 
@@ -268,7 +298,11 @@ const unvotePost = async (userId: string, id: string) => {
 
     return await prisma.post.findFirst({
       where: { id: id },
-      include: { _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } } },
+      include: {
+        _count: { select: { userUpvotedPosts: true, userDownvotedPosts: true } },
+        userUpvotedPosts: true,
+        userDownvotedPosts: true,
+      },
     });
   }
 

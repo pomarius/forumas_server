@@ -35,6 +35,7 @@ export const readTopic = async (req: Request, res: Response) => {
 
     res.status(200).send(topic);
   } catch (error) {
+    console.log(error);
     if (error instanceof HttpException) {
       res.status(error.status).send(error.message);
     }
@@ -48,6 +49,7 @@ export const readAllTopics = async (req: Request, res: Response) => {
 
     res.status(200).send(topic);
   } catch (error) {
+    console.log(error);
     if (error instanceof HttpException) {
       res.status(error.status).send(error.message);
     }
@@ -72,6 +74,7 @@ export const updateTopic = async (req: Request, res: Response) => {
 
     res.status(200).send(topic);
   } catch (error) {
+    console.log(error);
     if (error instanceof HttpException) {
       res.status(error.status).send(error.message);
     }
@@ -116,9 +119,9 @@ export const addTopicModerator = async (req: Request, res: Response) => {
 
     const { userId } = await authService.verifyToken(token);
 
-    await topicService.addTopicModerator(userId, id, username);
+    const topic = await topicService.addTopicModerator(userId, id, username);
 
-    res.status(200).send();
+    res.status(200).send(topic);
   } catch (error) {
     console.log(error);
     if (error instanceof HttpException) {
@@ -141,9 +144,9 @@ export const blockUser = async (req: Request, res: Response) => {
 
     const { userId } = await authService.verifyToken(token);
 
-    await topicService.blockUser(userId, id, username);
+    const topic = await topicService.blockUser(userId, id, username);
 
-    res.status(200).send();
+    res.status(200).send(topic);
   } catch (error) {
     console.log(error);
     if (error instanceof HttpException) {

@@ -65,4 +65,24 @@ export const refreshToken = async (req: Request, res: Response) => {
   }
 };
 
-export const authController = { login, register, refreshToken };
+export const getUserId = async (req: Request, res: Response) => {
+  try {
+    const token = req.header('token');
+
+    if (!token) {
+      res.status(400).send({ error: 'Bad input' });
+      return;
+    }
+
+    const { userId, username } = await authService.verifyToken(token);
+
+    res.status(200).send({ userId: userId, username: username });
+  } catch (error) {
+    if (error instanceof HttpException) {
+      res.status(error.status).send(error.message);
+    }
+    res.status(500).send();
+  }
+};
+
+export const authController = { login, register, refreshToken, getUserId };
